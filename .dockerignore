@@ -1,0 +1,27 @@
+# VCS
+.git/
+.gitignore
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Local environments
+_venv/
+.venv/
+venv/ 
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+
+# Editor files
+.vscode/
+
+# Project docs and caches
+README.md
