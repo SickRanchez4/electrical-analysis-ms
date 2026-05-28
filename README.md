@@ -15,7 +15,6 @@ Microservicio FastAPI para analizar consumo electrico a partir de un archivo Exc
 ## Requisitos
 
 - Python 3.13+
-- Archivo ReporteMedidores.xlsx en la raiz del proyecto (o configurar EXCEL_FILE_PATH)
 - Dependencias instaladas desde requirements.txt
 
 ## Instalacion
@@ -36,7 +35,6 @@ Variables obligatorias:
 Variables opcionales:
 
 - OPENAI_MODEL: modelo a usar (default: gpt-4.1-mini).
-- EXCEL_FILE_PATH: ruta del archivo Excel (default: ReporteMedidores.xlsx en raiz del repo).
 - LOG_LEVEL: nivel de logs (default: INFO).
 - SERVICE_API_KEY: si se define, protege todos los endpoints de /analysis y exige header x-api-key.
 - ENFORCE_SERVICE_API_KEY: obliga a definir SERVICE_API_KEY (default: false).
@@ -48,8 +46,7 @@ Ejemplo en PowerShell:
 
 ```powershell
 $env:OPENAI_API_KEY="tu_api_key"
-$env:OPENAI_MODEL="gpt-4.1-mini"
-$env:EXCEL_FILE_PATH="ReporteMedidores.xlsx"
+$env:OPENAI_MODEL="gpt-5.4-mini"
 $env:LOG_LEVEL="INFO"
 $env:SERVICE_API_KEY="mi_clave_interna"
 $env:ENFORCE_SERVICE_API_KEY="true"
@@ -83,8 +80,7 @@ Ejecutar contenedor en PowerShell:
 ```powershell
 docker run --rm -p 8000:8000 `
   -e OPENAI_API_KEY="tu_api_key" `
-  -e OPENAI_MODEL="gpt-4.1-mini" `
-  -e EXCEL_FILE_PATH="ReporteMedidores.xlsx" `
+  -e OPENAI_MODEL="gpt-5.4-mini" `
   -e LOG_LEVEL="INFO" `
   -e SERVICE_API_KEY="mi_clave_interna" `
   -e ENFORCE_SERVICE_API_KEY="true" `
@@ -105,7 +101,7 @@ Nota: si no quieres proteger rutas de analisis, omite SERVICE_API_KEY.
 
 ## Health Check
 
-- GET /health devuelve 200 solo cuando OPENAI_API_KEY esta configurada y el archivo Excel existe.
+- GET /health devuelve 200 solo cuando OPENAI_API_KEY esta configurada y la politica de SERVICE_API_KEY es valida.
 - Si falta alguna de esas dependencias, devuelve 503 con status degraded.
 
 ## Endpoints
@@ -123,42 +119,43 @@ Invoke-RestMethod -Method GET -Uri "http://127.0.0.1:8000/health"
 ### Chat con datos del Excel
 
 - POST /analysis/chat
+- Requiere multipart/form-data con los campos query y excel_file.
 
-Body:
-
-```json
-{
-	"query": "Cual cuenta tuvo mayor consumo KWH?"
-}
-```
-
-Ejemplo con API key:
+Ejemplo enviando Excel por HTTP:
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/chat" `
-	-Headers @{ "x-api-key" = "mi_clave_interna" } `
-	-ContentType "application/json" `
-	-Body '{"query":"Cual cuenta tuvo mayor consumo KWH?"}'
+$headers = @{ "x-api-key" = "mi_clave_interna" }
+$form = @{
+ 	query = "Cual cuenta tuvo mayor consumo KWH?"
+  excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx"
+}
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/chat" -Headers $headers -Form $form
 ```
 
 ### Cuentas sospechosas
 
 - POST /analysis/cuentas-sospechosas
+- Requiere multipart/form-data con el campo excel_file.
 
-Ejemplo:
+Ejemplo enviando Excel por HTTP:
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/cuentas-sospechosas" -Headers @{ "x-api-key" = "mi_clave_interna" }
+$headers = @{ "x-api-key" = "mi_clave_interna" }
+$form = @{ excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx" }
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/cuentas-sospechosas" -Headers $headers -Form $form
 ```
 
 ### Desequilibrios de fase
 
 - POST /analysis/desequilibrios-fase
+- Requiere multipart/form-data con el campo excel_file.
 
-Ejemplo:
+Ejemplo enviando Excel por HTTP:
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/desequilibrios-fase" -Headers @{ "x-api-key" = "mi_clave_interna" }
+$headers = @{ "x-api-key" = "mi_clave_interna" }
+$form = @{ excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx" }
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/desequilibrios-fase" -Headers $headers -Form $form
 ```
 
 ### Formateo de tabla HTML
@@ -185,6 +182,7 @@ Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/html-table-f
 ## Errores comunes
 
 - 500 OPENAI_API_KEY no esta configurada: define la variable de entorno.
-- 404 El archivo Excel no se encontro: revisa EXCEL_FILE_PATH.
+- 415 Content-Type invalido: usa multipart/form-data en endpoints de analisis de Excel.
+- 422 Faltan campos obligatorios: incluye excel_file (y query en /analysis/chat).
 - 401 Unauthorized: x-api-key incorrecta o faltante cuando SERVICE_API_KEY esta habilitada.
 - 502 Error al hacer la solicitud al modelo: error upstream de OpenAI o conectividad.

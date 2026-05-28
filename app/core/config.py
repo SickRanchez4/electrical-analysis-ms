@@ -16,7 +16,6 @@ def _as_bool(value: str | None, default: bool) -> bool:
 class Settings:
 	openai_api_key: str | None
 	openai_model: str
-	excel_file_path: str
 	service_api_key: str | None
 	enforce_service_api_key: bool
 	rate_limit_enabled: bool
@@ -29,12 +28,10 @@ class Settings:
 def get_settings() -> Settings:
 	project_root = Path(__file__).resolve().parents[2]
 	load_dotenv(project_root / ".env")
-	excel_name = os.getenv("EXCEL_FILE_PATH", "ReporteMedidores.xlsx")
 
 	return Settings(
 		openai_api_key=os.getenv("OPENAI_API_KEY"),
 		openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-		excel_file_path=str((project_root / excel_name).resolve()),
 		service_api_key=os.getenv("SERVICE_API_KEY"),
 		enforce_service_api_key=_as_bool(os.getenv("ENFORCE_SERVICE_API_KEY"), False),
 		rate_limit_enabled=_as_bool(os.getenv("RATE_LIMIT_ENABLED"), True),

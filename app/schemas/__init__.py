@@ -1,3 +1,3 @@
-from app.schemas.analysis import AnalysisResponse, HtmlTableRequest, UserQueryRequest
+from app.schemas.analysis import AnalysisResponse, HtmlTableRequest
 
-__all__ = ["AnalysisResponse", "HtmlTableRequest", "UserQueryRequest"]
+__all__ = ["AnalysisResponse", "HtmlTableRequest"]

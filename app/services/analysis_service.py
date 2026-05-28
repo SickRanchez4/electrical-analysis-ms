@@ -1,4 +1,4 @@
-from pathlib import Path
+from io import BytesIO
 from typing import Iterable
 import pandas as pd
 from openai import OpenAI
@@ -8,7 +8,7 @@ from app.core.logging import get_logger
 
 
 class ElectricalAnalysisService:
-    def __init__(self, api_key: str | None = None, excel_file_path: str | None = None, model: str | None = None):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         settings = get_settings()
         self.logger = get_logger(__name__)
 
@@ -16,27 +16,32 @@ class ElectricalAnalysisService:
         if not resolved_api_key:
             raise ValueError("OPENAI_API_KEY no está configurada en el entorno.")
 
-        configured_excel_path = settings.excel_file_path
-
         self.client = OpenAI(
             api_key=resolved_api_key,
             timeout=30.0,
             max_retries=2,
         )
-        self.excel_file_path = excel_file_path or str(Path(configured_excel_path).resolve())
         self.model = model or settings.openai_model
 
-    def load_xl_data(self, columnas_deseadas: Iterable[str] | None = None) -> str:
+    def load_xl_data(
+        self,
+        excel_content: bytes,
+        columnas_deseadas: Iterable[str] | None = None,
+        excel_filename: str | None = None,
+    ) -> str:
+        if not excel_content:
+            raise ValueError("El archivo Excel es obligatorio en la solicitud HTTP.")
+
         try:
+            excel_source = BytesIO(excel_content)
             if columnas_deseadas:
-                dataframe = pd.read_excel(self.excel_file_path, usecols=list(columnas_deseadas))
+                dataframe = pd.read_excel(excel_source, usecols=list(columnas_deseadas))
             else:
-                dataframe = pd.read_excel(self.excel_file_path)
+                dataframe = pd.read_excel(excel_source)
             return dataframe.to_csv(index=False)
-        except FileNotFoundError as exc:
-            raise FileNotFoundError(
-                f"El archivo '{self.excel_file_path}' no se encontró."
-            ) from exc
+        except ValueError as exc:
+            source_name = excel_filename or "archivo_subido"
+            raise ValueError(f"El archivo Excel '{source_name}' es inválido o no tiene formato compatible.") from exc
 
     def _ask_model(self, prompt: str) -> str:
         try:
@@ -50,8 +55,13 @@ class ElectricalAnalysisService:
             self.logger.exception("Error calling OpenAI model")
             raise RuntimeError("No se pudo completar la solicitud al modelo.") from exc
 
-    def chat_with_llm(self, user_query: str) -> str:
-        excel_data = self.load_xl_data()
+    def chat_with_llm(
+        self,
+        user_query: str,
+        excel_content: bytes,
+        excel_filename: str | None = None,
+    ) -> str:
+        excel_data = self.load_xl_data(excel_content=excel_content, excel_filename=excel_filename)
 
         prompt = f"""
         Eres un experto analista de datos de consumo electrico.
@@ -71,9 +81,17 @@ class ElectricalAnalysisService:
 
         return self._ask_model(prompt)
 
-    def cuentas_sospechosas(self) -> str:
+    def cuentas_sospechosas(
+        self,
+        excel_content: bytes,
+        excel_filename: str | None = None,
+    ) -> str:
         columnas_deseadas = ["CUENTA", "I1 (A)", "I2 (A)", "I3 (A)", "V1 (V)", "V2 (V)", "V3 (V)", "KWH MES"]
-        excel_data = self.load_xl_data(columnas_deseadas)
+        excel_data = self.load_xl_data(
+            columnas_deseadas=columnas_deseadas,
+            excel_content=excel_content,
+            excel_filename=excel_filename,
+        )
 
         prompt = f"""
         Eres un analista experto en energia electrica.
@@ -86,9 +104,17 @@ class ElectricalAnalysisService:
 
         return self._ask_model(prompt)
 
-    def desequilibrios_de_fase(self) -> str:
+    def desequilibrios_de_fase(
+        self,
+        excel_content: bytes,
+        excel_filename: str | None = None,
+    ) -> str:
         columnas_deseadas = ["CUENTA", "I1 (A)", "I2 (A)", "I3 (A)", "V1 (V)", "V2 (V)", "V3 (V)"]
-        excel_data = self.load_xl_data(columnas_deseadas)
+        excel_data = self.load_xl_data(
+            columnas_deseadas=columnas_deseadas,
+            excel_content=excel_content,
+            excel_filename=excel_filename,
+        )
 
         prompt = f"""
         Realiza un analisis de 'Desequilibrio severo' por cuenta, sobre los siguientes datos de mediciones electricas.

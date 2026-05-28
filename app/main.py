@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -26,7 +24,6 @@ app = FastAPI(
 def health_check() -> JSONResponse:
 	checks = {
 		"openai_api_key_configured": bool(settings.openai_api_key),
-		"excel_file_exists": Path(settings.excel_file_path).exists(),
 		"service_api_key_policy_ok": (not settings.enforce_service_api_key) or bool(settings.service_api_key),
 	}
 	ready = all(checks.values())
