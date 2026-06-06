@@ -65,7 +65,7 @@ uvicorn app.main:app --reload
 
 Swagger UI:
 
-- http://127.0.0.1:8000/docs
+- http://127.0.0.1:8080/docs
 
 ## Ejecucion con Docker
 
@@ -78,7 +78,7 @@ docker build -t electrical-ai:latest .
 Ejecutar contenedor en PowerShell:
 
 ```powershell
-docker run --rm -p 8000:8000 `
+docker run --rm -p 8080:8080 `
   -e OPENAI_API_KEY="tu_api_key" `
   -e OPENAI_MODEL="gpt-5.4-mini" `
   -e LOG_LEVEL="INFO" `
@@ -113,7 +113,7 @@ Nota: si no quieres proteger rutas de analisis, omite SERVICE_API_KEY.
 Ejemplo:
 
 ```powershell
-Invoke-RestMethod -Method GET -Uri "http://127.0.0.1:8000/health"
+Invoke-RestMethod -Method GET -Uri "http://127.0.0.1:8080/health"
 ```
 
 ### Chat con datos del Excel
@@ -129,7 +129,7 @@ $form = @{
  	query = "Cual cuenta tuvo mayor consumo KWH?"
   excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx"
 }
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/chat" -Headers $headers -Form $form
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8080/analysis/chat" -Headers $headers -Form $form
 ```
 
 ### Cuentas sospechosas
@@ -142,7 +142,7 @@ Ejemplo enviando Excel por HTTP:
 ```powershell
 $headers = @{ "x-api-key" = "mi_clave_interna" }
 $form = @{ excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx" }
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/cuentas-sospechosas" -Headers $headers -Form $form
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8080/analysis/cuentas-sospechosas" -Headers $headers -Form $form
 ```
 
 ### Desequilibrios de fase
@@ -155,7 +155,7 @@ Ejemplo enviando Excel por HTTP:
 ```powershell
 $headers = @{ "x-api-key" = "mi_clave_interna" }
 $form = @{ excel_file = Get-Item "C:\ruta\ReporteMedidores.xlsx" }
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/desequilibrios-fase" -Headers $headers -Form $form
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8080/analysis/desequilibrios-fase" -Headers $headers -Form $form
 ```
 
 ### Formateo de tabla HTML
@@ -173,7 +173,7 @@ Body:
 Ejemplo:
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8000/analysis/html-table-formatting" `
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:8080/analysis/html-table-formatting" `
 	-Headers @{ "x-api-key" = "mi_clave_interna" } `
 	-ContentType "application/json" `
 	-Body '{"html_table":"<table><tr><td>Dato</td></tr></table>"}'
