@@ -5,8 +5,9 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from app.core.logging import get_logger
 from app.core.security import enforce_rate_limit, verify_service_api_key
-from app.schemas.analysis import AnalysisResponse, HtmlTableRequest
+from app.schemas.analysis import AnalysisResponse, AnomalyDetectionItem, AnomalyDetectionResponse, HtmlTableRequest
 from app.services.analysis_service import ElectricalAnalysisService
+from app.services.machine_learning import MachineLearningAnalysisService
 
 
 logger = get_logger(__name__)
@@ -28,6 +29,10 @@ def get_analysis_service() -> ElectricalAnalysisService:
     except ValueError as exc:
         logger.exception("Service initialization failed")
         raise HTTPException(status_code=500, detail="Servicio no disponible.") from exc
+
+
+def get_machine_learning_service() -> MachineLearningAnalysisService:
+    return MachineLearningAnalysisService()
 
 
 def _is_multipart_request(request: Request) -> bool:
@@ -159,3 +164,24 @@ def html_table_formatting(
     except RuntimeError as exc:
         logger.exception("OpenAI request failed during HTML formatting request")
         raise HTTPException(status_code=502, detail="No se pudo completar el análisis.") from exc
+
+
+@router.post("/ml-deteccion-anomalias", response_model=AnomalyDetectionResponse)
+async def anomaly_detection(
+    request: Request,
+    service: MachineLearningAnalysisService = Depends(get_machine_learning_service),
+) -> AnomalyDetectionResponse:
+    try:
+        excel_content, excel_filename = await _extract_required_excel_from_request(request)
+        result = service.detect_anomalies(
+            excel_content=excel_content,
+            excel_filename=excel_filename,
+        )
+        return AnomalyDetectionResponse(
+            total_accounts=result["total_accounts"],
+            anomalies_detected=result["anomalies_detected"],
+            anomalies=[AnomalyDetectionItem(**item) for item in result["anomalies"]],
+        )
+    except ValueError as exc:
+        logger.exception("Invalid Excel file during anomaly detection request")
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

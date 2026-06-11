@@ -7,3 +7,17 @@ class HtmlTableRequest(BaseModel):
 
 class AnalysisResponse(BaseModel):
     result: str
+
+
+class AnomalyDetectionItem(BaseModel):
+    account: str
+    anomaly_score: float
+    risk: str
+    anomaly_type: str
+    reasons: list[str]
+
+
+class AnomalyDetectionResponse(BaseModel):
+    total_accounts: int
+    anomalies_detected: int
+    anomalies: list[AnomalyDetectionItem]
