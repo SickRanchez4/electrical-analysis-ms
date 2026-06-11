@@ -201,7 +201,7 @@ class MachineLearningAnalysisService:
                 {
                     "account": str(row["CUENTA"]),
                     "anomaly_score": round(float(abs(row["ML_SCORE"])), 4),
-                    "risk": "HIGH" if abs(row["ML_SCORE"]) > 0.15 else "MEDIUM",
+                    "risk": "ALTO" if abs(row["ML_SCORE"]) > 0.15 else "MEDIO",
                     "anomaly_type": anomaly_type,
                     "reasons": reasons,
                 }
